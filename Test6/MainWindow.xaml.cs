@@ -436,6 +436,8 @@ namespace Test6
         //    }
         //}
 
+        //
+       
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             FindCameraIndex();
