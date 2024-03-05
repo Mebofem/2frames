@@ -28,11 +28,16 @@ namespace Test6
         private Thread m_deckLinkMainThread;
 
         private DeckLinkDeviceDiscovery m_deckLinkDeviceDiscovery;
-        private DeckLinkDevice m_inputDevice;
+        private DeckLinkDevice m_inputDevice1;
+        private DeckLinkDevice m_inputDevice2;
+
         private DeckLinkOutputDevice m_outputDevice;
+        
         private ProfileCallback m_profileCallback;
 
-        private CaptureCallback m_captureCallback;
+        private CaptureCallback m_captureCallback1;
+        private CaptureCallback m_captureCallback2;
+
         private PlaybackCallback m_playbackCallback;
 
         private int cameraIndex = -1;
@@ -42,7 +47,10 @@ namespace Test6
         private Thread captureThread;
 
         private Mat latestCameraFrame;
-        private Mat latestDeckLinkFrame;
+        
+        private Mat latestDeckLinkFrame1;
+        private Mat latestDeckLinkFrame2;
+
         private object frameLock = new object();
 
         public MainWindow()
@@ -54,10 +62,11 @@ namespace Test6
         private void DeckLinkMainThread()
         {
             m_profileCallback = new ProfileCallback();
-            m_captureCallback = new CaptureCallback();
+            m_captureCallback1 = new CaptureCallback();
+            m_captureCallback2 = new CaptureCallback(); 
             m_playbackCallback = new PlaybackCallback();
 
-            m_captureCallback.FrameReceived += OnFrameReceived;
+            m_captureCallback1.FrameReceived += OnFrameReceived;
 
             m_deckLinkDeviceDiscovery = new DeckLinkDeviceDiscovery();
             m_deckLinkDeviceDiscovery.DeviceArrived += AddDevice;
@@ -65,7 +74,7 @@ namespace Test6
 
             m_applicationCloseWaitHandle.WaitOne();
 
-            m_captureCallback.FrameReceived -= OnFrameReceived;
+            m_captureCallback1.FrameReceived -= OnFrameReceived;
 
             DisposeDeckLinkResources();
         }
@@ -92,8 +101,13 @@ namespace Test6
             var deviceName = DeckLinkDeviceTools.GetDisplayLabel(e.deckLink);
             if (deviceName.Contains("DeckLink Duo (2)"))
             {
-                m_inputDevice = new DeckLinkDevice(e.deckLink, m_profileCallback);
-                InitializeInputDevice();
+                m_inputDevice1 = new DeckLinkDevice(e.deckLink, m_profileCallback);
+                InitializeInputDevice1();
+            }
+            else if (deviceName.Contains("DeckLink Duo (3)"))
+            {
+                m_inputDevice2 = new DeckLinkDevice(e.deckLink, m_profileCallback);
+                InitializeInputDevice2();
             }
             else if (deviceName.Contains("DeckLink Duo (4)"))
             {
@@ -103,11 +117,19 @@ namespace Test6
         }
 
 
-        private void InitializeInputDevice()
+        private void InitializeInputDevice1()
         {
-            if (m_inputDevice != null)
+            if (m_inputDevice1 != null)
             {
-                m_inputDevice.StartCapture(_BMDDisplayMode.bmdModeHD1080p5994, m_captureCallback, false);
+                m_inputDevice1.StartCapture(_BMDDisplayMode.bmdModeHD1080p5994, m_captureCallback1, false);
+            }
+        }
+
+        private void InitializeInputDevice2()
+        {
+            if (m_inputDevice2 != null)
+            {
+                m_inputDevice2.StartCapture(_BMDDisplayMode.bmdModeHD1080p5994, m_captureCallback2, false);
             }
         }
 
@@ -191,9 +213,8 @@ namespace Test6
 
         private void StartCameraCapture()
         {
-            if (cameraIndex == -1) return; // Check if the camera index is valid
+            if (cameraIndex == -1) return; 
 
-            // Initialize the camera capture with Full HD resolution
             cameraCapture = new VideoCapture(cameraIndex)
             {
                 FrameWidth = 1920,
@@ -201,7 +222,6 @@ namespace Test6
 
             };
             cameraCapture.Set(VideoCaptureProperties.Fps, 60);
-            // Start the capture thread
             captureRunning = true;
             captureThread = new Thread(CaptureCamera);
             captureThread.Start();
@@ -211,38 +231,8 @@ namespace Test6
 
         private Mat ProcessCameraFrame(Mat frame)
         {
-            int numberOfChannels = frame.Channels();
-
-            if (numberOfChannels == 2) // UYVY format
-            {
-                // Process the UYVY frame directly
-                return ProcessUYVYFrame(frame);
-            }
-            else if (numberOfChannels == 3) // BGR format
-            {
-                // Convert BGR to UYVY and then process
-                
-                
-                
-                //Mat uyvyFrame = ConvertBGRToUYVY(frame);
-                //return ProcessUYVYFrame(uyvyFrame);
-
-
-                return ProcessUYVYFrame(frame);
-            }
-            else
-            {
-                throw new Exception("Unsupported frame format");
-            }
+            return CropAndResizeFrame(frame); //for 2
         }
-        private Mat ProcessUYVYFrame(Mat uyvyFrame)
-        {
-            // Apply your UYVY specific processing here
-            // ...
-
-            return uyvyFrame; // Return the processed UYVY frame
-        }
-
 
         private Mat ConvertBGRToUYVY(Mat bgrFrame)
         {
@@ -282,52 +272,11 @@ namespace Test6
             return uyvyFrame;
         }
 
-        private void ProcessAndOutputCombinedFrame()
+        private Mat ConvertUYVYToBGR(Mat uyvyFrame)
         {
-            lock (frameLock)
-            {
-                if (latestCameraFrame != null && latestDeckLinkFrame != null)
-                {
-                    Mat combinedFrame = CombineFrames(latestCameraFrame, latestDeckLinkFrame);
-                    Mat uyvyFrame = ConvertBGRToUYVY(combinedFrame);
-                    m_outputDevice.ScheduleFrame(uyvyFrame);
-
-                    combinedFrame.Dispose();
-                    uyvyFrame.Dispose();
-
-                    // Reset frames to null after processing
-                    latestCameraFrame = null;
-                    latestDeckLinkFrame = null;
-                }
-            }
-        }
-
-        private Mat CombineFrames(Mat cameraFrame, Mat deckLinkFrame)
-        {
-            int resizedWidth = 1920 / 2;
-            int resizedHeight = 1080 / 2;
-
-            Mat resizedCameraFrame = new Mat();
-            Mat resizedDeckLinkFrame = new Mat();
-
-            // Resize camera frame to half width and full height
-            Cv2.Resize(cameraFrame, resizedCameraFrame, new OpenCvSharp.Size(resizedWidth, 1080));
-
-            // Resize deckLink frame to half width and full height
-            Cv2.Resize(deckLinkFrame, resizedDeckLinkFrame, new OpenCvSharp.Size(resizedWidth, 1080));
-
-            Mat combinedFrame = new Mat(1080, 1920, MatType.CV_8UC3);  // Assuming BGR format
-
-            OpenCvSharp.Rect leftRoi = new OpenCvSharp.Rect(0, 0, resizedWidth, 1080);  // Left half
-            OpenCvSharp.Rect rightRoi = new OpenCvSharp.Rect(resizedWidth, 0, resizedWidth, 1080);  // Right half
-
-            resizedCameraFrame.CopyTo(new Mat(combinedFrame, leftRoi));
-            resizedDeckLinkFrame.CopyTo(new Mat(combinedFrame, rightRoi));
-
-            resizedCameraFrame.Dispose();
-            resizedDeckLinkFrame.Dispose();
-
-            return combinedFrame;
+            Mat bgrFrame = new Mat();
+            Cv2.CvtColor(uyvyFrame, bgrFrame, ColorConversionCodes.YUV2BGR_UYVY);
+            return bgrFrame;
         }
 
         private void CaptureCamera()
@@ -336,19 +285,17 @@ namespace Test6
             {
                 using (Mat camframe = new Mat())
                 {
-                    if (cameraCapture.Read(camframe)) // Capture a frame
+                    if (cameraCapture.Read(camframe)) 
                     {
                         Mat processedFrame = ProcessCameraFrame(camframe);
+                        //m_outputDevice.ScheduleFrame(processedFrame);
 
                         lock (frameLock)
                         {
                             latestCameraFrame = processedFrame.Clone();
-
-                            if (latestDeckLinkFrame != null)
-                            {
-                                ProcessAndOutputCombinedFrame();
-                            }
                         }
+
+                        ProcessAndOutputCombinedFrame();
                     }
                 }
             }
@@ -364,80 +311,76 @@ namespace Test6
 
             using (Mat capturedFrame = new Mat(height, width, OpenCvSharp.MatType.CV_8UC2, frameBytes))
             {
-                Mat processedFrame = ProcessFrameWithOpenCV(capturedFrame);
+                //Mat processedFrame = ProcessFrameWithOpenCV(capturedFrame);
 
-                Mat bgrFrame = ConvertUYVYToBGR(capturedFrame);
+                //Mat bgrFrame = ConvertUYVYToBGR(capturedFrame);
+
+                Mat bgrImage = ConvertUYVYToBGR(capturedFrame);
+                Mat processedFrame = CropAndResizeFrame(bgrImage);
+
+
+                //if (m_outputDevice != null)
+                //{
+                //    m_outputDevice.ScheduleFrame(processedFrame);
+                //}
+
+                //lock (frameLock)
+                //{
+                //    //latestDeckLinkFrame = processedFrame.Clone();
+                //    latestDeckLinkFrame = bgrFrame.Clone();
 
                 lock (frameLock)
                 {
-                    //latestDeckLinkFrame = processedFrame.Clone();
-                    latestDeckLinkFrame = bgrFrame.Clone();
+                    latestDeckLinkFrame1 = processedFrame.Clone();
+                }
 
-                    if (latestCameraFrame != null)
-                    {
-                        ProcessAndOutputCombinedFrame();
-                    }
+                ProcessAndOutputCombinedFrame();
+            }
+        }
+
+        private Mat CropAndResizeFrame(Mat originalFrame)
+        {
+            OpenCvSharp.Rect cropRect = new OpenCvSharp.Rect(240, 0, 1440, 1080);
+            Mat croppedFrame = new Mat(originalFrame, cropRect);
+
+            Mat resizedFrame = new Mat();
+            Cv2.Resize(croppedFrame, resizedFrame, new OpenCvSharp.Size(960, 720));
+
+            return resizedFrame;
+        }
+
+        private Mat CombineFrames(Mat leftFrame, Mat rightFrame)
+        {
+            Mat combinedFrame = new Mat(1080, 1920, OpenCvSharp.MatType.CV_8UC3, new Scalar(0, 0, 0));
+
+            int offsetX = (1920 - (2 * leftFrame.Width)) / 2;
+            int offsetY = (1080 - leftFrame.Height) / 2;
+
+            leftFrame.CopyTo(combinedFrame[new OpenCvSharp.Rect(offsetX, offsetY, leftFrame.Width, leftFrame.Height)]);
+            rightFrame.CopyTo(combinedFrame[new OpenCvSharp.Rect(offsetX + leftFrame.Width, offsetY, rightFrame.Width, rightFrame.Height)]);
+
+            return combinedFrame;
+        }
+        private void ProcessAndOutputCombinedFrame()
+        {
+            lock (frameLock)
+            {
+                if (latestCameraFrame != null && latestDeckLinkFrame1 != null)
+                {
+                    Mat combinedFrame = CombineFrames(latestCameraFrame, latestDeckLinkFrame1);
+                    Mat uyvyFrame = ConvertBGRToUYVY(combinedFrame);
+                    m_outputDevice.ScheduleFrame(uyvyFrame);
+
+                    combinedFrame.Dispose();
+                    uyvyFrame.Dispose();
+
+                    latestCameraFrame = null;
+                    latestDeckLinkFrame1 = null;
                 }
             }
         }
 
-        private Mat ConvertUYVYToBGR(Mat uyvyFrame)
-        {
-            Mat bgrFrame = new Mat();
-            Cv2.CvtColor(uyvyFrame, bgrFrame, ColorConversionCodes.YUV2BGR_UYVY);
-            return bgrFrame;
-        }
 
-        //private void OnFrameReceived(IDeckLinkVideoInputFrame videoFrame)
-        //{
-        //    IntPtr frameBytes;
-        //    videoFrame.GetBytes(out frameBytes);
-
-        //    int width = videoFrame.GetWidth();
-        //    int height = videoFrame.GetHeight();
-
-        //    using (Mat capturedFrame = new Mat(height, width, OpenCvSharp.MatType.CV_8UC2, frameBytes))
-        //    {
-        //        Mat processedFrame = ProcessFrameWithOpenCV(capturedFrame);
-
-        //        //if (m_outputDevice != null)
-        //        //{
-        //        //    m_outputDevice.ScheduleFrame(processedFrame);
-        //        //}
-
-        //        lock (frameLock)
-        //        {
-        //            latestDeckLinkFrame = processedFrame.Clone();
-        //        }
-
-        //        ProcessAndOutputCombinedFrame();
-        //    }
-        //}
-
-        //private void CaptureCamera()
-        //{
-        //    while (captureRunning)
-        //    {
-        //        using (Mat camframe = new Mat())
-        //        {
-        //            if (cameraCapture.Read(camframe)) // Capture a frame
-        //            {
-        //                Mat processedFrame = ProcessCameraFrame(camframe);
-        //                //m_outputDevice.ScheduleFrame(processedFrame);
-
-        //                lock (frameLock)
-        //                {
-        //                    latestCameraFrame = processedFrame.Clone();
-        //                }
-
-        //                ProcessAndOutputCombinedFrame();
-        //            }
-        //        }
-        //    }
-        //}
-
-        //
-       
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             FindCameraIndex();
@@ -450,16 +393,13 @@ namespace Test6
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             StopCameraCapture();
-            // Signal the main thread to close
             m_applicationCloseWaitHandle.Set();
 
-            // Wait for the main thread to finish
             if (m_deckLinkMainThread != null && m_deckLinkMainThread.IsAlive)
             {
                 m_deckLinkMainThread.Join();
             }
 
-            // Properly dispose of DeckLink resources
             DisposeDeckLinkResources();
         }
 
@@ -472,10 +412,16 @@ namespace Test6
 
         private void DisposeDeckLinkResources()
         {
-            if (m_inputDevice != null)
+            if (m_inputDevice1 != null)
             {
-                m_inputDevice.StopCapture();
-                m_inputDevice = null;
+                m_inputDevice1.StopCapture();
+                m_inputDevice1 = null;
+            }
+
+            if (m_inputDevice2 != null)
+            {
+                m_inputDevice2.StopCapture();
+                m_inputDevice2 = null;
             }
 
             if (m_outputDevice != null)
