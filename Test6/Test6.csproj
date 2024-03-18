@@ -17,6 +17,9 @@
     <Reference Include="Interop.DeckLinkAPI">
       <HintPath>..\..\..\Interop.DeckLinkAPI.dll</HintPath>
     </Reference>
+    <Reference Include="VimbaNET">
+      <HintPath>..\VimbaNET.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

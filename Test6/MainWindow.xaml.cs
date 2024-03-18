@@ -1,8 +1,10 @@
-﻿using DeckLinkAPI;
+﻿using AVT.VmbAPINET;
+using DeckLinkAPI;
 using DirectShowLib;
 using OpenCvSharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -18,6 +20,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Frame = AVT.VmbAPINET.Frame;
+using Rect = OpenCvSharp.Rect;
 
 namespace Test6
 {
@@ -40,14 +44,22 @@ namespace Test6
 
         private PlaybackCallback m_playbackCallback;
 
-        private int cameraIndex = -1;
 
-        private VideoCapture cameraCapture;
-        private bool captureRunning;
-        private Thread captureThread;
+        //previous camera*
+        //private int cameraIndex = -1;
+        //private VideoCapture cameraCapture;
+        //private bool captureRunning;
+        //private Thread captureThread;
+        //*
+
+        //new camera*
+        private Camera _camera;
+        private Vimba _vimba;
+        private bool _acquiring;
+        private Frame[] _frameArray;
+        //*
 
         private Mat latestCameraFrame;
-        
         private Mat latestDeckLinkFrame1;
         private Mat latestDeckLinkFrame2;
 
@@ -78,21 +90,254 @@ namespace Test6
 
             DisposeDeckLinkResources();
         }
+        #region Previous camera*
+        //Previous camera*
+        //private void FindCameraIndex()
+        //{
+        //    DsDevice[] cameras = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
+        //    for (int i = 0; i < cameras.Length; i++)
+        //    {
+        //        if (cameras[i].Name == "HT-GE202GC-T-CL")
+        //        {
+        //            cameraIndex = i;
+        //            break;
+        //        }
+        //    }
 
-        private void FindCameraIndex()
+        //    if (cameraIndex == -1)
+        //        throw new Exception("Camera not found");
+        //}
+
+        //private void StartCameraCapture()
+        //{
+        //    if (cameraIndex == -1) return;
+
+        //    cameraCapture = new VideoCapture(cameraIndex)
+        //    {
+        //        FrameWidth = 1920,
+        //        FrameHeight = 1080
+
+        //    };
+        //    cameraCapture.Set(VideoCaptureProperties.Fps, 60);
+        //    captureRunning = true;
+        //    captureThread = new Thread(CaptureCamera);
+        //    captureThread.Start();
+        //}
+        //private void CaptureCamera()
+        //{
+        //    while (captureRunning)
+        //    {
+        //        using (Mat camframe = new Mat())
+        //        {
+        //            if (cameraCapture.Read(camframe))
+        //            {
+        //                Mat processedFrame = ProcessCameraFrame(camframe);
+        //                //m_outputDevice.ScheduleFrame(processedFrame);
+
+        //                lock (frameLock)
+        //                {
+        //                    latestCameraFrame = processedFrame.Clone();
+        //                }
+
+        //                ProcessAndOutputCombinedFrame();
+        //            }
+        //        }
+        //    }
+        //}
+        //Previous camera*
+        #endregion
+
+
+        //Gt1910*
+        private void InitializeVimba()
         {
-            DsDevice[] cameras = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
-            for (int i = 0; i < cameras.Length; i++)
+            _vimba = new Vimba();
+            _vimba.Startup();
+            var cameras = _vimba.Cameras;
+            if (cameras.Count > 0)
             {
-                if (cameras[i].Name == "HT-GE202GC-T-CL")
+                _camera = cameras[0];
+                _camera.Open(VmbAccessModeType.VmbAccessModeFull);
+                StartImageAcquisition();
+            }
+            else
+            {
+                MessageBox.Show("No cameras found.");
+            }
+        }
+        private void StartImageAcquisition()
+        {
+            if (_camera != null)
+            {
+                AdjustPacketSize();
+                SetupCameraForCapture();
+            }
+            else
+            {
+                MessageBox.Show("Camera is not initialized.");
+            }
+        }
+
+        private void AdjustPacketSize()
+        {
+            try
+            {
+                var adjustPacketSizeFeature = _camera.Features["GVSPAdjustPacketSize"];
+                if (adjustPacketSizeFeature != null)
                 {
-                    cameraIndex = i;
-                    break;
+                    adjustPacketSizeFeature.RunCommand();
+                    while (!adjustPacketSizeFeature.IsCommandDone())
+                    {
+                        Debug.WriteLine("Adjusting packet size...");
+                    }
+                    Debug.WriteLine("Packet size adjusted.");
                 }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Exception while adjusting packet size: {ex.Message}");
+            }
+        }
 
-            if (cameraIndex == -1)
-                throw new Exception("Camera not found");
+        private void SetupCameraForCapture()
+        {
+            long payloadSize = _camera.Features["PayloadSize"].IntValue;
+            _frameArray = new Frame[5];
+            for (int i = 0; i < _frameArray.Length; i++)
+            {
+                _frameArray[i] = new Frame(payloadSize);
+                _camera.AnnounceFrame(_frameArray[i]);
+            }
+            _camera.StartCapture();
+            foreach (var frame in _frameArray)
+            {
+                _camera.QueueFrame(frame);
+            }
+
+            _camera.OnFrameReceived += OnCameraFrameReceived;
+            _camera.Features["AcquisitionMode"].EnumValue = "Continuous";
+            _camera.Features["AcquisitionStart"].RunCommand();
+            _acquiring = true;
+        }
+
+        private void OnCameraFrameReceived(Frame frame)
+        {
+            if (!_acquiring) return;
+
+            try
+            {
+                Debug.WriteLine($"Frame received: {frame.FrameID}, Status: {frame.ReceiveStatus}");
+                ProcessFrame(frame);
+                if (_acquiring)
+                {
+                    _camera.QueueFrame(frame);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error processing frame: {ex.Message}");
+            }
+        }
+        private void ProcessFrame(Frame frame)
+        {
+            if (frame.ReceiveStatus == VmbFrameStatusType.VmbFrameStatusComplete)
+            {
+                using (var mono8 = new Mat((int)frame.Height, (int)frame.Width, MatType.CV_8UC1, frame.Buffer))
+                {
+                    //var bitmapSource = BitmapSourceConverter.ToBitmapSource(mat);
+                    //imgFrame.Source = bitmapSource;
+
+                    Mat bgrImage = new Mat();
+                    Cv2.CvtColor(mono8, bgrImage, ColorConversionCodes.GRAY2BGR);
+
+
+                    Mat processedFrame = ProcessCameraFrame(bgrImage);
+                    
+                    Mat AddText = CenterFrame(processedFrame);
+
+
+                    SaveFrameAsImage(AddText);
+
+                    //********************************for one frame
+                    Mat uyvyFrame = ConvertBGRToUYVY(AddText);
+                    if (m_outputDevice != null)
+                    {
+                        m_outputDevice.ScheduleFrame(uyvyFrame);
+                    }
+
+                    //**********************************for two frames
+                    //lock (frameLock)
+                    //{
+                    //    latestCameraFrame = processedFrame.Clone();
+                    //}
+
+                    //ProcessAndOutputCombinedFrame();
+                }
+            }
+        }
+
+        private Mat ProcessCameraFrame(Mat frame)
+        {
+            return CropAndResizeFrame(frame); //for 2
+        }
+        //Gt1910*
+
+        private void SaveFrameAsImage(Mat uyvyFrame)
+        {
+            string imagePath = @"C:\Users\User\Desktop\font\frame_uyvy_Arial22.jpg";
+
+            Cv2.ImWrite(imagePath, uyvyFrame);
+        }
+
+        private Mat CenterFrame(Mat originalFrame)
+        {
+            Mat centeredFrame = new Mat(new OpenCvSharp.Size(1920, 1080), originalFrame.Type(), Scalar.All(0));
+
+            int startX = (centeredFrame.Width - originalFrame.Width) / 2;
+            int startY = (centeredFrame.Height - originalFrame.Height) / 2;
+            Rect roi = new Rect(startX, startY, originalFrame.Width, originalFrame.Height);
+            originalFrame.CopyTo(centeredFrame[roi]);
+
+            // Draw vertical green lines
+            Cv2.Line(centeredFrame, new OpenCvSharp.Point(240, 0), new OpenCvSharp.Point(240, 1080), Scalar.Green, 2);
+            Cv2.Line(centeredFrame, new OpenCvSharp.Point(1680, 0), new OpenCvSharp.Point(1680, 1080), Scalar.Green, 2);
+
+            // Place text in columns
+            PlaceTextInColumns(centeredFrame, 30);    // For left side text
+            PlaceTextInColumns(centeredFrame, 1710);  // For right side text
+
+            return centeredFrame;
+        }
+
+        private void PlaceTextInColumns(Mat frame, int startX)
+        {
+            int startY = 200;
+            int stepY = 100;
+            //double[] fontScales = { 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8 };
+            double[] fontScales = { 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3 };
+
+            string[] lines = {
+        "Coordinate", "Coordinate", "Coordinate", "Coordinate",
+        "Coordinate", "Coordinate", "Coordinate", "Coordinate", 
+    };
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                double fontScale = fontScales[i];
+                int yPosition = startY + i * stepY;
+                string text = lines[i] + " // text size //" + fontScale.ToString();
+
+                Cv2.PutText(
+                    frame,
+                    text,
+                    new OpenCvSharp.Point(startX, yPosition),
+                    HersheyFonts.HersheySimplex,
+                    fontScale,
+                    Scalar.White,
+                    1,
+                    LineTypes.AntiAlias
+                );
+            }
         }
 
 
@@ -104,11 +349,11 @@ namespace Test6
                 m_inputDevice1 = new DeckLinkDevice(e.deckLink, m_profileCallback);
                 InitializeInputDevice1();
             }
-            else if (deviceName.Contains("DeckLink Duo (3)"))
-            {
-                m_inputDevice2 = new DeckLinkDevice(e.deckLink, m_profileCallback);
-                InitializeInputDevice2();
-            }
+            //else if (deviceName.Contains("DeckLink Duo (3)"))
+            //{
+            //    m_inputDevice2 = new DeckLinkDevice(e.deckLink, m_profileCallback);
+            //    InitializeInputDevice2();
+            //}
             else if (deviceName.Contains("DeckLink Duo (4)"))
             {
                 m_outputDevice = new DeckLinkOutputDevice(e.deckLink, m_profileCallback);
@@ -125,13 +370,13 @@ namespace Test6
             }
         }
 
-        private void InitializeInputDevice2()
-        {
-            if (m_inputDevice2 != null)
-            {
-                m_inputDevice2.StartCapture(_BMDDisplayMode.bmdModeHD1080p5994, m_captureCallback2, false);
-            }
-        }
+        //private void InitializeInputDevice2()
+        //{
+        //    if (m_inputDevice2 != null)
+        //    {
+        //        m_inputDevice2.StartCapture(_BMDDisplayMode.bmdModeHD1080p5994, m_captureCallback2, false);
+        //    }
+        //}
 
         private void InitializeOutputDevice()
         {
@@ -211,29 +456,6 @@ namespace Test6
         //}
 
 
-        private void StartCameraCapture()
-        {
-            if (cameraIndex == -1) return; 
-
-            cameraCapture = new VideoCapture(cameraIndex)
-            {
-                FrameWidth = 1920,
-                FrameHeight = 1080
-
-            };
-            cameraCapture.Set(VideoCaptureProperties.Fps, 60);
-            captureRunning = true;
-            captureThread = new Thread(CaptureCamera);
-            captureThread.Start();
-        }
-
-
-
-        private Mat ProcessCameraFrame(Mat frame)
-        {
-            return CropAndResizeFrame(frame); //for 2
-        }
-
         private Mat ConvertBGRToUYVY(Mat bgrFrame)
         {
             // Convert from BGR to YUV
@@ -279,28 +501,6 @@ namespace Test6
             return bgrFrame;
         }
 
-        private void CaptureCamera()
-        {
-            while (captureRunning)
-            {
-                using (Mat camframe = new Mat())
-                {
-                    if (cameraCapture.Read(camframe)) 
-                    {
-                        Mat processedFrame = ProcessCameraFrame(camframe);
-                        //m_outputDevice.ScheduleFrame(processedFrame);
-
-                        lock (frameLock)
-                        {
-                            latestCameraFrame = processedFrame.Clone();
-                        }
-
-                        ProcessAndOutputCombinedFrame();
-                    }
-                }
-            }
-        }
-
         private void OnFrameReceived(IDeckLinkVideoInputFrame videoFrame)
         {
             IntPtr frameBytes;
@@ -313,28 +513,24 @@ namespace Test6
             {
                 //Mat processedFrame = ProcessFrameWithOpenCV(capturedFrame);
 
-                //Mat bgrFrame = ConvertUYVYToBGR(capturedFrame);
-
                 Mat bgrImage = ConvertUYVYToBGR(capturedFrame);
                 Mat processedFrame = CropAndResizeFrame(bgrImage);
 
-
+                //********************************for one frame
+                //Mat uyvyFrame = ConvertBGRToUYVY(processedFrame);
                 //if (m_outputDevice != null)
                 //{
-                //    m_outputDevice.ScheduleFrame(processedFrame);
+                //    m_outputDevice.ScheduleFrame(uyvyFrame);
                 //}
 
+
+                //********************************for 2 frames
                 //lock (frameLock)
                 //{
-                //    //latestDeckLinkFrame = processedFrame.Clone();
-                //    latestDeckLinkFrame = bgrFrame.Clone();
+                //    latestDeckLinkFrame1 = processedFrame.Clone();
+                //}
 
-                lock (frameLock)
-                {
-                    latestDeckLinkFrame1 = processedFrame.Clone();
-                }
-
-                ProcessAndOutputCombinedFrame();
+                //ProcessAndOutputCombinedFrame();
             }
         }
 
@@ -343,10 +539,11 @@ namespace Test6
             OpenCvSharp.Rect cropRect = new OpenCvSharp.Rect(240, 0, 1440, 1080);
             Mat croppedFrame = new Mat(originalFrame, cropRect);
 
-            Mat resizedFrame = new Mat();
-            Cv2.Resize(croppedFrame, resizedFrame, new OpenCvSharp.Size(960, 720));
+            //Mat resizedFrame = new Mat();
+            //Cv2.Resize(croppedFrame, resizedFrame, new OpenCvSharp.Size(960, 720));
 
-            return resizedFrame;
+            //return resizedFrame;
+            return croppedFrame;
         }
 
         private Mat CombineFrames(Mat leftFrame, Mat rightFrame)
@@ -383,8 +580,13 @@ namespace Test6
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            FindCameraIndex();
-            StartCameraCapture();
+            //previus camera*
+            //FindCameraIndex();
+            //StartCameraCapture();
+            //*
+
+            InitializeVimba();
+
             m_deckLinkMainThread = new Thread(() => DeckLinkMainThread());
             m_deckLinkMainThread.SetApartmentState(ApartmentState.MTA);
             m_deckLinkMainThread.Start();
@@ -392,7 +594,14 @@ namespace Test6
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            StopCameraCapture();
+            //previous camera*
+            //StopCameraCapture();
+            //previous camera*
+
+            //gt1910*
+            StopCamera();
+            //gt1910*
+
             m_applicationCloseWaitHandle.Set();
 
             if (m_deckLinkMainThread != null && m_deckLinkMainThread.IsAlive)
@@ -403,12 +612,77 @@ namespace Test6
             DisposeDeckLinkResources();
         }
 
-        private void StopCameraCapture()
+        //previous camera*
+        //private void StopCameraCapture()
+        //{
+        //    captureRunning = false;
+        //    captureThread?.Join();
+        //    cameraCapture?.Dispose();
+        //}
+        //previous camera*
+
+        //gt1910*
+        private void StopCamera()
         {
-            captureRunning = false;
-            captureThread?.Join();
-            cameraCapture?.Dispose();
+            if (_camera != null)
+            {
+                _acquiring = false;
+
+                try
+                {
+                    _camera.Features["AcquisitionStop"].RunCommand();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error stopping acquisition: {ex.Message}");
+                }
+
+                try
+                {
+                    _camera.EndCapture();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error ending capture: {ex.Message}");
+                }
+
+                try
+                {
+                    _camera.FlushQueue();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error flushing queue: {ex.Message}");
+                }
+
+                try
+                {
+                    _camera.RevokeAllFrames();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error revoking frames: {ex.Message}");
+                }
+
+                try
+                {
+                    _camera.Close();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error closing camera: {ex.Message}");
+                }
+                finally
+                {
+                    _camera = null;
+                    Debug.WriteLine("Camera set to null.");
+                }
+            }
+
+            Debug.WriteLine("Shutting down Vimba...");
+            _vimba.Shutdown();
         }
+        //gt1910*
 
         private void DisposeDeckLinkResources()
         {
