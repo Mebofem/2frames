@@ -259,7 +259,7 @@ namespace Test6
                     Mat AddText = CenterFrame(processedFrame);
 
 
-                    SaveFrameAsImage(AddText);
+                    //SaveFrameAsImage(AddText);
 
                     //********************************for one frame
                     Mat uyvyFrame = ConvertBGRToUYVY(AddText);
@@ -308,34 +308,79 @@ namespace Test6
 
             Cv2.Line(centeredFrame, new OpenCvSharp.Point(0, 1), new OpenCvSharp.Point(1920, 1), Scalar.Green, 1);
             Cv2.Line(centeredFrame, new OpenCvSharp.Point(0, 1079), new OpenCvSharp.Point(1920, 1079), Scalar.Green, 1);
+            //Radar
+            Cv2.Line(centeredFrame, new OpenCvSharp.Point(1680, 610), new OpenCvSharp.Point(1920, 610), Scalar.Green, 1);
+            //Radar + zoom\batery
+            Cv2.Line(centeredFrame, new OpenCvSharp.Point(1680, 880), new OpenCvSharp.Point(1920, 880), Scalar.Green, 1);
+            //zoom\batery
+            //Smoke
+            Cv2.Line(centeredFrame, new OpenCvSharp.Point(1, 330), new OpenCvSharp.Point(240, 330), Scalar.Green, 1);
+            //Smoke + cameras
+            Cv2.Line(centeredFrame, new OpenCvSharp.Point(1, 675), new OpenCvSharp.Point(240, 675), Scalar.Green, 1);
+            //Cameras + text
+            Cv2.Line(centeredFrame, new OpenCvSharp.Point(1, 820), new OpenCvSharp.Point(240, 820), Scalar.Green, 1);
+            //text
 
             //Mat LeftSide = PlaceTextInColumns(centeredFrame, 25);    // For left side text
             //Mat RightSide = PlaceTextInColumns(LeftSide, 1705);  // For right side text
-            
+
 
             // Mat LeftSide = DrawCameraIcon(centeredFrame, 0, 0, Scalar.FromRgb(255, 165, 0), Scalar.FromRgb(144, 238, 144));
-            Mat LeftSide = cameraIcon(centeredFrame, 300);
-            LeftSide = cameraGrayIcon(LeftSide, 500);
-            LeftSide = cameraOrangeIcon(LeftSide, 700);
+            Mat LeftSide = cameraIcon(centeredFrame, 365, 0);
+            LeftSide = coreanCameraA(LeftSide, 460, 1, 2);
+            LeftSide = cameraIcon(LeftSide, 565, 0);
+            //Mat LeftSide = cameraIcon(centeredFrame, 370);
+            //LeftSide = cameraGrayIcon(LeftSide, 500);
+            //LeftSide = cameraGrayIcon(LeftSide, 630);
             LeftSide = Armor(LeftSide, 60);
-            LeftSide = dum(LeftSide, 20, 900);
-            LeftSide = dum(LeftSide, 84, 900);
-            LeftSide = dum(LeftSide, 148, 900);
-            LeftSide = dum(LeftSide, 20, 964);
-            LeftSide = dum(LeftSide, 84, 964);
-            LeftSide = dum(LeftSide, 148, 964);
+            LeftSide = dum(LeftSide, 20, 245, 1);
+            LeftSide = dum(LeftSide, 50, 245, 2);
+            LeftSide = dum(LeftSide, 80, 245, 1);
+            LeftSide = dum(LeftSide, 130, 245, 2);
+            LeftSide = dum(LeftSide, 160, 245, 1);
+            LeftSide = dum(LeftSide, 190, 245, 2);
+            //LeftSide = dum(LeftSide, 62, 205, 1);
+            //LeftSide = dum(LeftSide, 112, 205, 2);
+            //LeftSide = dum(LeftSide, 168,205, 1);
+            //LeftSide = dum(LeftSide, 60, 275,  2);
+            //LeftSide = dum(LeftSide, 112, 275, 1);
+            //LeftSide = dum(LeftSide, 168,275, 2);
 
             //Mat RightSide = xyCoordinate(centeredFrame, 1800, 155, 110, new Scalar(144, 238, 144), new Scalar(0, 100, 0, 128), 2);
             Mat RightSide = xyCoordinate(LeftSide, 1800, 155, 110, new Scalar(144, 238, 144), new Scalar(0, 100, 0, 128), 2);
-            Mat addText = PlaceTextInColumns(RightSide);
+            Mat Centre = scope(RightSide);
+            Mat addText = PlaceTextInColumns(Centre, 1, 2, 1282);
+            addText = PlaceProblemsInColumns(addText);
             return addText;
             //return centeredFrame;
         }
 
-        private Mat dum(Mat frame,int x,  int Y)
+        private Mat scope(Mat frame) 
         {
-            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font\dum64.PNG");
+            //centre
+            Cv2.Line(frame, new OpenCvSharp.Point(930, 540), new OpenCvSharp.Point(990, 540), Scalar.Green, 2);
+            Cv2.Line(frame, new OpenCvSharp.Point(960, 510), new OpenCvSharp.Point(960, 570), Scalar.Green, 2);
+            //up
+            Cv2.Line(frame, new OpenCvSharp.Point(870, 480), new OpenCvSharp.Point(900, 480), Scalar.Green, 2);
+            Cv2.Line(frame, new OpenCvSharp.Point(1020, 480), new OpenCvSharp.Point(1050, 480), Scalar.Green, 2);
+            Cv2.Line(frame, new OpenCvSharp.Point(870, 480), new OpenCvSharp.Point(870, 510), Scalar.Green, 2);
+            Cv2.Line(frame, new OpenCvSharp.Point(1050, 480), new OpenCvSharp.Point(1050, 510), Scalar.Green, 2);
+            //down
+            Cv2.Line(frame, new OpenCvSharp.Point(870, 600), new OpenCvSharp.Point(900, 600), Scalar.Green, 2);
+            Cv2.Line(frame, new OpenCvSharp.Point(1020, 600), new OpenCvSharp.Point(1050, 600), Scalar.Green, 2);
+            Cv2.Line(frame, new OpenCvSharp.Point(870, 570), new OpenCvSharp.Point(870, 600), Scalar.Green, 2);
+            Cv2.Line(frame, new OpenCvSharp.Point(1050, 570), new OpenCvSharp.Point(1050, 600), Scalar.Green, 2);
 
+            return frame;
+        }
+        private Mat dum(Mat frame, int x, int Y, int z)
+        {
+            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font1\SmokeGreen26x50.PNG");
+
+            if (z == 1) 
+            {
+                overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font1\SmokeGray26x50.PNG");
+            }
             // Define the ROI in the centeredFrame where the image will be placed
             int overlayX = x;
             int overlayY = Y;
@@ -351,10 +396,10 @@ namespace Test6
         }
         private Mat Armor(Mat frame, int Y) 
         {
-            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font\free.PNG");
+            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font1\PatronsGray80x60.PNG");
 
             // Define the ROI in the centeredFrame where the image will be placed
-            int overlayX = 55;
+            int overlayX = 80;
             int overlayY = Y;
             Rect overlayRoi = new Rect(overlayX, overlayY, overlayImage.Width, overlayImage.Height);
 
@@ -367,44 +412,15 @@ namespace Test6
             return frame;
         }
 
-        private Mat cameraIcon(Mat src, int Y) 
+        private Mat cameraIcon(Mat src, int Y, int activeCamera) 
         {
-            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font\CameraGreen.PNG");
+            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font1\CameraGray80x40.PNG");
 
-            // Define the ROI in the centeredFrame where the image will be placed
-            int overlayX = 55;
-            int overlayY = Y;
-            Rect overlayRoi = new Rect(overlayX, overlayY, overlayImage.Width, overlayImage.Height);
-
-            // Ensure the ROI is within the bounds of the centeredFrame
-            if (overlayX + overlayImage.Width <= src.Width && overlayY + overlayImage.Height <= src.Height)
+            if (activeCamera == 1)
             {
-                Mat roiMat = new Mat(src, overlayRoi);
-                overlayImage.CopyTo(roiMat);
+                overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font1\CameraGreen80x40.PNG");
+                
             }
-            return src;
-        }
-        private Mat cameraOrangeIcon(Mat src, int Y)
-        {
-            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font\CameraOrange.PNG");
-
-            // Define the ROI in the centeredFrame where the image will be placed
-            int overlayX = 55;
-            int overlayY = Y;
-            Rect overlayRoi = new Rect(overlayX, overlayY, overlayImage.Width, overlayImage.Height);
-
-            // Ensure the ROI is within the bounds of the centeredFrame
-            if (overlayX + overlayImage.Width <= src.Width && overlayY + overlayImage.Height <= src.Height)
-            {
-                Mat roiMat = new Mat(src, overlayRoi);
-                overlayImage.CopyTo(roiMat);
-            }
-            return src;
-        }
-        private Mat cameraGrayIcon(Mat src, int Y)
-        {
-            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font\CameraGray.PNG");
-
             // Define the ROI in the centeredFrame where the image will be placed
             int overlayX = 55;
             int overlayY = Y;
@@ -419,40 +435,58 @@ namespace Test6
             return src;
         }
 
-
-        private Mat DrawCameraIcon(Mat img, int x, int y, Scalar mainColor, Scalar borderColor)
+        private Mat coreanCameraA(Mat src, int Y, int activeCamera, int zoom)
         {
-            // Малюємо прямокутник для корпусу камери
-            OpenCvSharp.Point[] cameraBody = new OpenCvSharp.Point[] { new OpenCvSharp.Point(20, 360), new OpenCvSharp.Point(20, 480), new OpenCvSharp.Point(220, 480), new OpenCvSharp.Point(220, 360) };
-            Cv2.FillConvexPoly(img, cameraBody, Scalar.FromRgb(255, 165, 0), LineTypes.AntiAlias);
+            Mat overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font1\CameraGray80x40.PNG");
 
-            // Малюємо лінії на верхній частині камери
-            OpenCvSharp.Point[] lines = new OpenCvSharp.Point[] { new OpenCvSharp.Point(60, 360), new OpenCvSharp.Point(100, 340), new OpenCvSharp.Point(140, 340), new OpenCvSharp.Point(180, 360) };
-            Cv2.FillConvexPoly(img, lines, Scalar.FromRgb(255, 165, 0), LineTypes.AntiAlias);
+            if (activeCamera == 1) overlayImage = Cv2.ImRead(@"C:\Users\User\Desktop\font1\CameraGreen80x40.PNG");
 
-            // Малюємо отвори на камері
-            Cv2.Circle(img, new OpenCvSharp.Point(65, 390), 10, Scalar.FromRgb(144, 238, 144), -1, LineTypes.AntiAlias);
-            Cv2.Circle(img, new OpenCvSharp.Point(120, 420), 40, Scalar.FromRgb(144, 238, 144), -1, LineTypes.AntiAlias);
-            Cv2.Circle(img, new OpenCvSharp.Point(120, 420), 30, Scalar.FromRgb(255, 165, 0), -1, LineTypes.AntiAlias);
+            // Define the ROI in the centeredFrame where the image will be placed
+            int overlayX = 55;
+            int overlayY = Y;
+            Rect overlayRoi = new Rect(overlayX, overlayY, overlayImage.Width, overlayImage.Height);
 
-            // Малюємо рамку навколо камери
-            Cv2.Polylines(img, new OpenCvSharp.Point[][] { cameraBody }, true, Scalar.FromRgb(144, 238, 144), 2, LineTypes.AntiAlias);
-            Cv2.Polylines(img, new OpenCvSharp.Point[][] { lines }, true, Scalar.FromRgb(144, 238, 144), 2, LineTypes.AntiAlias);
-            return img;
+            // Ensure the ROI is within the bounds of the centeredFrame
+            if (overlayX + overlayImage.Width <= src.Width && overlayY + overlayImage.Height <= src.Height)
+            {
+                Mat roiMat = new Mat(src, overlayRoi);
+                overlayImage.CopyTo(roiMat);
+            }
+            return src;
         }
-
 
         private Mat xyCoordinate(Mat frame, int x, int y, int radius, Scalar outlineColor, Scalar fillColor, int thickness)
         {
+            int moove = -90;
+
+            int startAngle = moove + 25; // Кут початку дуги (12 годинник)
+            int endAngle = moove - 25;
+
+            OpenCvSharp.Point center = new OpenCvSharp.Point(x, y);
+
             // Draw the filled circle
             Cv2.Circle(frame, new OpenCvSharp.Point(x, y), radius, fillColor, -1, LineTypes.AntiAlias);
+
+            Cv2.Ellipse(frame, center, new OpenCvSharp.Size(radius, radius), 0, startAngle, endAngle, new Scalar(0, 130, 0), -1, LineTypes.AntiAlias);
 
             // Draw the circle outline
             Cv2.Circle(frame, new OpenCvSharp.Point(x, y), radius, outlineColor, thickness, LineTypes.AntiAlias);
 
+            // Draw the divisions
+            for (int i = 0; i < 12; i++)
+            {
+                double angle = 2 * Math.PI * i / 12;
+                OpenCvSharp.Point outerPoint = new OpenCvSharp.Point((int)(x + radius * Math.Cos(angle)), (int)(y + radius * Math.Sin(angle)));
+                OpenCvSharp.Point innerPoint = new OpenCvSharp.Point((int)(x + (radius - 10) * Math.Cos(angle)), (int)(y + (radius - 10) * Math.Sin(angle)));
+
+                Cv2.Line(frame, outerPoint, innerPoint, new Scalar(144, 238, 144), 2, LineTypes.AntiAlias);
+            }
+
             // Draw the additional shapes (orange line and small circles)
             // Draw the orange line
-            Cv2.Line(frame, new OpenCvSharp.Point(x, y), new OpenCvSharp.Point(x, y - 107), new Scalar(0, 165, 255), 3);
+            OpenCvSharp.Point mooveP = new OpenCvSharp.Point((int)(x + radius * Math.Cos(moove * Math.PI / 180)), (int)(y + radius * Math.Sin(moove * Math.PI / 180)));
+
+            Cv2.Line(frame, center, mooveP, new Scalar(0, 165, 255), thickness, LineTypes.AntiAlias);
 
             // Draw the small orange circle
             Cv2.Circle(frame, new OpenCvSharp.Point(x, y), 6, new Scalar(0, 165, 255), -1, LineTypes.AntiAlias);
@@ -469,14 +503,15 @@ namespace Test6
             return frame;
         }
 
+
         private void zCoordinate(Mat frame, OpenCvSharp.Point center, OpenCvSharp.Point point12, int thickness, Scalar color)
         {
             // Визначення радіуса за допомогою відстані між центром та точкою 12 годин
             double radius = Math.Sqrt(Math.Pow(point12.X - center.X, 2) + Math.Pow(point12.Y - center.Y, 2));
 
             // Координати початку і кінця дуги в градусах
-            int startAngle = 30; // Кут початку дуги (12 годинник)
-            int endAngle = -90; // Кут кінця дуги (4 годинник)
+            int startAngle = 10; // Кут початку дуги (12 годинник)
+            int endAngle = -75; // Кут кінця дуги (4 годинник)
 
             // Малювання заповненого сектора кола
             Cv2.Ellipse(frame, center, new OpenCvSharp.Size(radius, radius), 0, startAngle, endAngle, new Scalar(0, 100, 0), -1, LineTypes.AntiAlias);
@@ -485,7 +520,7 @@ namespace Test6
             Cv2.Ellipse(frame, center, new OpenCvSharp.Size(radius, radius), 0, startAngle, endAngle, color, thickness, LineTypes.AntiAlias);
 
             // Малювання ліній від центру до крайніх точок сегмента
-            Cv2.Line(frame, center, point12, color, thickness, LineTypes.AntiAlias);
+            Cv2.Line(frame, center, new OpenCvSharp.Point((int)(center.X + radius * Math.Cos(endAngle * Math.PI / 180)), (int)(center.Y + radius * Math.Sin(endAngle * Math.PI / 180))), color, thickness, LineTypes.AntiAlias);
             Cv2.Line(frame, center, new OpenCvSharp.Point((int)(center.X + radius * Math.Cos(startAngle * Math.PI / 180)), (int)(center.Y + radius * Math.Sin(startAngle * Math.PI / 180))), color, thickness, LineTypes.AntiAlias);
             
             // Малювання оранжевого кола радіусом 6 пікселів
@@ -527,10 +562,10 @@ namespace Test6
         private void battery(Mat frame, int x)
         {
             // Координати прямокутника
-            OpenCvSharp.Point[] rectanglePoints = { new OpenCvSharp.Point(1700, 745),
-                                             new OpenCvSharp.Point(1900, 745),
-                                             new OpenCvSharp.Point(1900, 770),
-                                             new OpenCvSharp.Point(1700, 770) };
+            OpenCvSharp.Point[] rectanglePoints = { new OpenCvSharp.Point(1700, 775),
+                                             new OpenCvSharp.Point(1900, 775),
+                                             new OpenCvSharp.Point(1900, 800),
+                                             new OpenCvSharp.Point(1700, 800) };
 
 
             // Малювання прямокутника з темно-зеленим кольором
@@ -539,23 +574,79 @@ namespace Test6
             // Малювання рамки світло-зеленим кольором
             Cv2.Polylines(frame, new OpenCvSharp.Point[][] { rectanglePoints }, isClosed: true, color: new Scalar(144, 238, 144), thickness: 2, lineType: LineTypes.AntiAlias);
 
-            OpenCvSharp.Point[] rectanglePoints1 = { new OpenCvSharp.Point(1702 , 747),
-                                             new OpenCvSharp.Point(1900-x , 747),
-                                             new OpenCvSharp.Point(1900-x , 768),
-                                             new OpenCvSharp.Point(1702 , 768) };
+            OpenCvSharp.Point[] rectanglePoints1 = { new OpenCvSharp.Point(1702 , 777),
+                                             new OpenCvSharp.Point(1900-x , 777),
+                                             new OpenCvSharp.Point(1900-x , 798),
+                                             new OpenCvSharp.Point(1702 , 798) };
             Cv2.FillPoly(frame, new OpenCvSharp.Point[][] { rectanglePoints1 }, new Scalar(0, 165, 255));
         }
 
 
-        private Mat PlaceTextInColumns(Mat frame)//, int startX)
+        private Mat PlaceProblemsInColumns(Mat frame)
         {
-        //    int startY = 200;
-        //    int stepY = 45;
+            Bitmap bitmap = MatToBitmap(frame);
 
-    //        string[] lines = {
-    //    "Відеокамера:Н", "Дальність:1234", "Дальність 0000", "Тепловізор х8",
-    //    "Збільшення:х50", "Збільшення:х48", "Режим вогню", "Р.вогню: КЧ", "Р.вогню КЧ", "Яскравість: 10", "Палітра: ГЧ", "Супровід", "Подвійний А", "Подвійний: А", "Г:-125.00", "В:-120.00", "В:-120.00"
-    //};
+            using (Graphics g = Graphics.FromImage(bitmap))
+            {
+                string text = "Не працює ч/б камера. Немає сигналу з далекоміру. Пошкоджено двигун повороту башти. Пошкоджено центральне живлення системи.";
+                Font font = new Font("Arial", 18);
+                System.Drawing.Brush brush = new SolidBrush(System.Drawing.Color.FromArgb(128, 0, 0));
+                //System.Drawing.Brush brush = new SolidBrush(System.Drawing.Color.Red);
+                PointF point = new PointF(255, 1000);
+
+                // Виміряти розмір тексту
+                SizeF textSize = g.MeasureString(text, font);
+                float maxWidth = 1400;
+                float lineHeight = textSize.Height;
+
+                // Розділити текст на рядки, якщо його ширина перевищує maxWidth
+                List<string> lines = new List<string>();
+                string[] words = text.Split(' ');
+
+                string currentLine = "";
+                foreach (string word in words)
+                {
+                    string testLine = string.IsNullOrEmpty(currentLine) ? word : currentLine + " " + word;
+                    SizeF testLineSize = g.MeasureString(testLine, font);
+
+                    if (testLineSize.Width > maxWidth)
+                    {
+                        lines.Add(currentLine);
+                        currentLine = word;
+                    }
+                    else
+                    {
+                        currentLine = testLine;
+                    }
+                }
+                lines.Add(currentLine); // Додати останній рядок
+
+                // Визначити загальну висоту текстового блоку
+                float totalHeight = lineHeight * lines.Count;
+
+                // Додати напівпрозорий чорний прямокутник
+                RectangleF textBackground = new RectangleF(point.X, point.Y, maxWidth, totalHeight);
+                System.Drawing.Brush backgroundBrush = new SolidBrush(System.Drawing.Color.FromArgb(160, 0, 0, 0)); // Напівпрозорий чорний
+
+                g.FillRectangle(backgroundBrush, textBackground);
+
+                // Додати текст поверх прямокутника
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    PointF linePoint = new PointF(point.X, point.Y + i * lineHeight);
+                    g.DrawString(lines[i], font, brush, linePoint);
+                }
+            }
+
+            Mat imageWithText = BitmapToMat(bitmap);
+            bitmap.Dispose();
+            return imageWithText;
+        }
+
+
+
+        private Mat PlaceTextInColumns(Mat frame,int activeCorean, int zoom, int distance)
+        {
             Bitmap bitmap = MatToBitmap(frame); 
 
             using (Graphics g = Graphics.FromImage(bitmap))
@@ -563,34 +654,64 @@ namespace Test6
                 using (Font font = new Font("Arial", 18))
                 {
                     System.Drawing.Brush brush = new SolidBrush(System.Drawing.Color.Green);
-
-                    //for (int i = 0; i < lines.Length; i++)
-                    //{
-                    //    PointF point = new PointF(startX, startY + i * stepY);
-                    //    g.DrawString(lines[i], font, brush, point);
-                    //}
-                    PointF point = new PointF(30, 420);
-                    g.DrawString("Відеокамера:Н", font, brush, point);
-                    PointF point1 = new PointF(30, 620);
-                    g.DrawString("Відеокамера:G", font, brush, point1);
-                    PointF point2 = new PointF(30, 820);
-                    g.DrawString("Відеокамера:J", font, brush, point2);
-                    PointF point3 = new PointF(30, 220);
+                    PointF point = new PointF(30, 415);
+                    g.DrawString("Камера: Ч/Б", font, brush, point);
+                    PointF point1 = new PointF(30, 510);
+                    g.DrawString("К: Ширококутна", font, brush, point1);
+                    PointF point2 = new PointF(30, 615);
+                    g.DrawString("К: Тепловізор", font, brush, point2);
+                    //PointF point = new PointF(30, 460);
+                    //g.DrawString("Відеокамера:Н", font, brush, point);
+                    //PointF point1 = new PointF(30, 590);
+                    //g.DrawString("Відеокамера:G", font, brush, point1);
+                    //PointF point2 = new PointF(30, 720);
+                    //g.DrawString("Відеокамера:J", font, brush, point2);
+                    PointF point3 = new PointF(30, 140);
                     g.DrawString("Кількість набоїв:", font, brush, point3);
-                    PointF point4 = new PointF(90, 242);
+                    PointF point4 = new PointF(90, 175);
                     g.DrawString("99999", font, brush, point4);
                     PointF point5 = new PointF(1690, 285);
-                    g.DrawString("Кут повороту башні", font, brush, point5);
-                    PointF point6 = new PointF(1690, 590);
+                    g.DrawString("Кут повороту башти", font, brush, point5);
+                    PointF point6 = new PointF(1690, 540);
                     g.DrawString("Кут підйому стволу", font, brush, point6);
-                    PointF point7 = new PointF(1690, 680);
-                    g.DrawString("Зум Х2", font, brush, point7);
-                    PointF point8 = new PointF(1690, 780);
-                    g.DrawString("Заряд: 89%", font, brush, point8);
-                    PointF point9 = new PointF(1690, 830);
-                    g.DrawString("Дальність 0000", font, brush, point9);
-                    PointF point10 = new PointF(1690, 880);
+                    //PointF point7 = new PointF(1740, 690);
+                    //g.DrawString("Зум Х2", font, brush, point7);
+
+
+                    //PointF point8 = new PointF(1690, 795);
+                    //g.DrawString("Заряд: 89%", font, brush, point8);
+
+
+                    PointF point9 = new PointF(30, 760);
+                    g.DrawString("Дальність: " + distance + "м", font, brush, point9);
+                    PointF point10 = new PointF(30, 710);
                     g.DrawString("Палітра: ГЧ", font, brush, point10);
+
+
+                    string distanceText = distance + "м";
+                    SizeF textSize = g.MeasureString(distanceText, font);
+                    RectangleF textBackground = new RectangleF(1050, 600, textSize.Width, textSize.Height);
+                    System.Drawing.Brush backgroundBrush = new SolidBrush(System.Drawing.Color.FromArgb(128, 0, 0, 0)); // Semi-transparent black
+
+                    g.FillRectangle(backgroundBrush, textBackground);
+
+                    // Draw the distance text with semi-transparent burgundy color
+                    System.Drawing.Brush brush1 = new SolidBrush(System.Drawing.Color.FromArgb(255, 139, 0, 0)); // Burgundy color
+                    PointF point11 = new PointF(1050, 600);
+                    g.DrawString(distanceText, font, brush1, point11);
+                }
+                using (Font font = new Font("Arial", 22)) 
+                {
+                    System.Drawing.Brush brush = new SolidBrush(System.Drawing.Color.Green);
+                    PointF point7 = new PointF(1740, 690);
+                    g.DrawString("Зум Х2", font, brush, point7);
+                    PointF point8 = new PointF(1715, 820);
+                    g.DrawString("Заряд: 89%", font, brush, point8);
+                    if (activeCorean == 1)
+                    {
+                        PointF point9 = new PointF(160, 465);
+                        g.DrawString("Х" + zoom + "", font, brush, point9);
+                    }
                 }
             }
 
@@ -628,8 +749,6 @@ namespace Test6
             bitmap.UnlockBits(data);
             return bitmap;
         }
-
-
         private Mat BitmapToMat(Bitmap bitmap)
         {
             Mat mat = new Mat(bitmap.Height, bitmap.Width, MatType.CV_8UC3);
