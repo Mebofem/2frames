@@ -64,7 +64,7 @@ namespace Test6
             m_supportsInputFormatDetection = Convert.ToBoolean(inputFormatDetectionAttribute);
 
             m_deckLinkInput = m_deckLink as IDeckLinkInput;
- 
+
             m_deckLinkConfiguration = m_deckLink as IDeckLinkConfiguration;
 
             m_displayName = DeckLinkDeviceTools.GetDisplayLabel(m_deckLink);

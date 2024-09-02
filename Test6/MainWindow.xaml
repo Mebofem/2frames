@@ -9,6 +9,67 @@
         Loaded="Window_Loaded"
         Closing="Window_Closing">
     <Grid Margin="0,10,0,-6">
-        <!-- Your UI elements go here -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" VerticalAlignment="Top" Margin="10">
+            <TextBlock Text="Gun Elevation:"/>
+            <TextBlock Text="Turret Angle:"/>
+            <TextBlock Text="Camera:"/>
+            <TextBlock Text="Palette:"/>
+            <TextBlock Text="Fire Mode:"/>
+            <TextBlock Text="Color:"/>
+            <TextBlock Text="Contrast:"/>
+            <TextBlock Text="Brightness:"/>
+            <TextBlock Text="Range:"/>
+            <TextBlock Text="Ammo:"/>
+            <TextBlock Text="Menu:"/>
+            <TextBlock Text="Plus:"/>
+            <TextBlock Text="Select:"/>
+            <TextBlock Text="Minus:"/>
+            <TextBlock Text="Combat Mode:"/>
+            <TextBlock Text="Distance:"/>
+            <TextBlock Text="Battery Level:"/>
+            <TextBlock Text="Zoom Level:"/>
+            <TextBlock Text="Smoke Grenades:"/>
+            <TextBlock Text="Barrel Temperature:"/>
+            <TextBlock Text="Errors:"/>
+            <TextBlock Text="Remaining Ammo:"/>
+            <TextBlock Text="Impulse Count:"/>
+            <TextBlock Text="Add Distance:"/>
+            <TextBlock Text="Angle_OB:"/>
+            <TextBlock Text="Button_Sleep:"/>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10">
+            <TextBlock x:Name="TextGunElevation"/>
+            <TextBlock x:Name="TextTurretAngle"/>
+            <TextBlock x:Name="TextCamera"/>
+            <TextBlock x:Name="TextPalette"/>
+            <TextBlock x:Name="TextFireMode"/>
+            <TextBlock x:Name="TextColor"/>
+            <TextBlock x:Name="TextContrast"/>
+            <TextBlock x:Name="TextBrightness"/>
+            <TextBlock x:Name="TextRange"/>
+            <TextBlock x:Name="TextAmmo"/>
+            <TextBlock x:Name="TextMenu"/>
+            <TextBlock x:Name="TextPlus"/>
+            <TextBlock x:Name="TextSelect"/>
+            <TextBlock x:Name="TextMinus"/>
+            <TextBlock x:Name="TextCombatMode"/>
+            <TextBlock x:Name="TextDistance"/>
+            <TextBlock x:Name="TextBatteryLevel"/>
+            <TextBlock x:Name="TextZoomLevel"/>
+            <TextBlock x:Name="TextSmokeGrenades"/>
+            <TextBlock x:Name="TextBarrelTemp"/>
+            <TextBlock x:Name="TextErrors"/>
+            <TextBlock x:Name="TextRemainingAmmo"/>
+            <TextBlock x:Name="TextImpulseCount"/>
+            <TextBlock x:Name="TextAddDistance"/>
+            <TextBlock x:Name="TextAngle_OB"/>
+            <TextBlock x:Name="TextButton_Sleep"/>
+        </StackPanel>
     </Grid>
 </Window>
